@@ -1,0 +1,349 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ExpiChat - Grup Berbatas Waktu</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+        .app-container {
+            width: 100%;
+            max-width: 480px;
+            background: #ffffff;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            position: relative;
+        }
+        
+        /* Layar Utama (Home) */
+        #homeScreen {
+            padding: 20px;
+            overflow-y: auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+            margin-top: 10px;
+        }
+        header h1 { color: #075e54; font-size: 24px; margin-bottom: 5px; }
+        header p { font-size: 13px; color: #666; }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #444; }
+        input, select {
+            width: 100%; padding: 12px; border: 1px solid #e0e0e0;
+            border-radius: 10px; font-size: 15px; background: #fafafa; outline: none;
+        }
+        input:focus, select:focus { border-color: #128c7e; }
+        
+        .btn-primary {
+            width: 100%; background: #128c7e; color: white; border: none;
+            padding: 14px; border-radius: 10px; font-size: 16px; font-weight: bold;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .btn-primary:hover { background: #075e54; }
+
+        .group-section { margin-top: 30px; }
+        .group-section h3 { font-size: 16px; margin-bottom: 15px; border-bottom: 2px solid #f0f2f5; padding-bottom: 5px; }
+        
+        .group-card {
+            background: #f7f9fa; border-left: 4px solid #128c7e;
+            padding: 15px; border-radius: 8px; margin-bottom: 12px;
+            cursor: pointer; transition: all 0.2s ease;
+        }
+        .group-card:hover { background: #eef2f3; }
+        .group-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .group-title { font-weight: bold; font-size: 16px; }
+        .timer { font-size: 13px; color: #d63031; font-weight: 600; background: #ffeaa7; padding: 2px 8px; border-radius: 20px; }
+        
+        /* Layar Obrolan (Chat Room) */
+        #chatScreen {
+            display: none; /* Disembunyikan awalnya */
+            flex-direction: column;
+            height: 100%;
+            background: #e5ddd5; /* Warna background khas chat */
+        }
+        .chat-header {
+            background: #075e54; color: white; padding: 15px;
+            display: flex; align-items: center; gap: 15px;
+        }
+        .back-btn {
+            background: none; border: none; color: white; font-size: 24px; cursor: pointer;
+        }
+        .chat-info { flex-grow: 1; }
+        .chat-title { font-size: 18px; font-weight: bold; }
+        .chat-timer { font-size: 12px; color: #dcf8c6; }
+        
+        .messages-container {
+            flex-grow: 1; padding: 20px; overflow-y: auto;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .message {
+            max-width: 75%; padding: 10px 15px; border-radius: 15px;
+            font-size: 14.5px; position: relative; word-wrap: break-word;
+        }
+        .message-sender { font-size: 11px; font-weight: bold; margin-bottom: 3px; color: #128c7e; }
+        .message.received { background: white; align-self: flex-start; border-top-left-radius: 0; }
+        .message.sent { background: #dcf8c6; align-self: flex-end; border-top-right-radius: 0; }
+        
+        .chat-input-area {
+            background: #f0f0f0; padding: 10px; display: flex; gap: 10px; align-items: center;
+        }
+        .chat-input-area input {
+            flex-grow: 1; padding: 12px 15px; border-radius: 25px; border: none;
+        }
+        .send-btn {
+            background: #128c7e; color: white; border: none; width: 45px; height: 45px;
+            border-radius: 50%; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 1. LAYAR UTAMA (DAFTAR GRUP) -->
+<div id="homeScreen" class="app-container">
+    <header>
+        <h1>⏳ ExpiChat</h1>
+        <p>Bikin grup tugas yang bisa hapus diri sendiri</p>
+    </header>
+
+    <div class="form-group">
+        <label for="groupName">Nama Grup Tugas</label>
+        <input type="text" id="groupName" placeholder="Misal: Kelompok 3 Fisika">
+    </div>
+
+    <div class="form-group">
+        <label for="duration">Masa Aktif Grup</label>
+        <select id="duration">
+            <option value="60">1 Menit (Untuk Demo)</option>
+            <option value="3600">1 Jam</option>
+            <option value="86400">24 Jam</option>
+        </select>
+    </div>
+
+    <button class="btn-primary" onclick="createNewGroup()">Buat Grup Baru</button>
+
+    <div class="group-section">
+        <h3>Grup Aktif Kamu</h3>
+        <div id="groupList"></div>
+    </div>
+</div>
+
+<!-- 2. LAYAR RUANG OBROLAN (CHAT ROOM) -->
+<div id="chatScreen" class="app-container">
+    <div class="chat-header">
+        <button class="back-btn" onclick="closeChat()">←</button>
+        <div class="chat-info">
+            <div class="chat-title" id="roomTitle">Nama Grup</div>
+            <div class="chat-timer" id="roomTimer">Sisa waktu: Menghitung...</div>
+        </div>
+    </div>
+    
+    <div class="messages-container" id="messageContainer">
+        <!-- Pesan akan muncul di sini -->
+    </div>
+    
+    <div class="chat-input-area">
+        <input type="text" id="messageInput" placeholder="Ketik pesan..." onkeypress="handleEnter(event)">
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+</div>
+
+<script>
+    // --- DATABASE LOKAL SEMENTARA ---
+    let activeGroups = JSON.parse(localStorage.getItem('expi_groups')) || [];
+    let chatMessages = JSON.parse(localStorage.getItem('expi_messages')) || {};
+    let currentUser = localStorage.getItem('expi_username') || null;
+    let currentGroupId = null;
+
+    // --- FUNGSI HALAMAN UTAMA ---
+    function saveGroups() { localStorage.setItem('expi_groups', JSON.stringify(activeGroups)); }
+    function saveMessages() { localStorage.setItem('expi_messages', JSON.stringify(chatMessages)); }
+
+    function createNewGroup() {
+        const nameInput = document.getElementById('groupName');
+        const durationSelect = document.getElementById('duration');
+
+        if (nameInput.value.trim() === "") { alert("Isi nama grupnya dulu yuk!"); return; }
+
+        const expireTime = Date.now() + (parseInt(durationSelect.value) * 1000);
+        const group = { id: 'g_' + Date.now(), name: nameInput.value, expireTime: expireTime };
+
+        activeGroups.push(group);
+        chatMessages[group.id] = []; // Siapkan tempat untuk pesan di grup ini
+        
+        saveGroups(); saveMessages();
+        nameInput.value = ""; 
+        renderGroups();
+    }
+
+    function renderGroups() {
+        const listContainer = document.getElementById('groupList');
+        listContainer.innerHTML = "";
+
+        if (activeGroups.length === 0) {
+            listContainer.innerHTML = "<p style='color: #aaa; text-align: center; font-size: 14px; margin-top: 20px;'>Belum ada grup aktif.</p>";
+            return;
+        }
+
+        activeGroups.forEach(group => {
+            const card = document.createElement('div');
+            card.className = "group-card";
+            card.onclick = () => openChat(group.id); // Klik grup untuk masuk chat
+            
+            card.innerHTML = `
+                <div class="group-header">
+                    <span class="group-title"># ${group.name}</span>
+                    <span class="timer" id="timer-${group.id}">Menghitung...</span>
+                </div>
+                <div style="font-size: 13px; color: #777;">Ketuk untuk masuk obrolan</div>
+            `;
+            listContainer.appendChild(card);
+        });
+    }
+
+    // --- FUNGSI RUANG OBROLAN ---
+    function openChat(groupId) {
+        // Minta nama jika belum ada
+        if (!currentUser) {
+            const name = prompt("Masukkan nama kamu sebelum masuk grup:");
+            if (!name) return; // Batal masuk jika nama kosong
+            currentUser = name;
+            localStorage.setItem('expi_username', currentUser);
+        }
+
+        const group = activeGroups.find(g => g.id === groupId);
+        if (!group) return;
+
+        currentGroupId = groupId;
+        
+        // Pindah tampilan layar
+        document.getElementById('homeScreen').style.display = 'none';
+        document.getElementById('chatScreen').style.display = 'flex';
+        document.getElementById('roomTitle').innerText = group.name;
+        
+        renderMessages();
+    }
+
+    function closeChat() {
+        currentGroupId = null;
+        document.getElementById('homeScreen').style.display = 'flex';
+        document.getElementById('chatScreen').style.display = 'none';
+    }
+
+    function renderMessages() {
+        const container = document.getElementById('messageContainer');
+        container.innerHTML = "";
+        
+        const msgs = chatMessages[currentGroupId] || [];
+        
+        msgs.forEach(msg => {
+            const msgEl = document.createElement('div');
+            const isMe = msg.sender === currentUser;
+            msgEl.className = `message ${isMe ? 'sent' : 'received'}`;
+            
+            // Tampilkan nama pengirim jika itu bukan kita
+            const senderHTML = !isMe ? `<div class="message-sender">${msg.sender}</div>` : '';
+            
+            msgEl.innerHTML = `${senderHTML}<div>${msg.text}</div>`;
+            container.appendChild(msgEl);
+        });
+
+        // Auto-scroll ke bawah
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        
+        if (text === "" || !currentGroupId) return;
+
+        const newMessage = {
+            sender: currentUser,
+            text: text,
+            timestamp: Date.now()
+        };
+
+        chatMessages[currentGroupId].push(newMessage);
+        saveMessages();
+        
+        input.value = "";
+        renderMessages();
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+
+    // --- SISTEM PENGHAPUSAN OTOMATIS (TIMER) ---
+    function updateTimers() {
+        const sekarang = Date.now();
+        let groupsToKeep = [];
+
+        activeGroups.forEach(group => {
+            const sisaWaktu = group.expireTime - sekarang;
+
+            if (sisaWaktu <= 0) {
+                // Hapus data pesan grup ini
+                delete chatMessages[group.id];
+                saveMessages();
+                
+                // Jika user sedang berada di dalam grup yang expired, paksa keluar
+                if (currentGroupId === group.id) {
+                    alert("Waktu grup ini sudah habis! Grup otomatis dihapus.");
+                    closeChat();
+                }
+            } else {
+                groupsToKeep.push(group);
+                
+                // Format waktu
+                const d = Math.floor(sisaWaktu / 1000);
+                const jam = Math.floor(d / 3600);
+                const menit = Math.floor((d % 3600) / 60);
+                const detik = d % 60;
+                let hasil = `${jam > 0 ? jam+'j ' : ''}${menit > 0 ? menit+'m ' : ''}${detik}d`;
+
+                // Update UI Home
+                const timerHome = document.getElementById(`timer-${group.id}`);
+                if (timerHome) timerHome.innerText = hasil;
+
+                // Update UI Chat (jika sedang di dalam grup ini)
+                if (currentGroupId === group.id) {
+                    document.getElementById('roomTimer').innerText = `Sisa waktu: ${hasil}`;
+                }
+            }
+        });
+
+        // Jika ada grup yang terhapus, perbarui daftar aktif dan UI
+        if (groupsToKeep.length !== activeGroups.length) {
+            activeGroups = groupsToKeep;
+            saveGroups();
+            renderGroups();
+        }
+    }
+
+    // Inisialisasi awal
+    renderGroups();
+    setInterval(updateTimers, 1000); // Hitung mundur setiap detik
+
+</script>
+
+</body>
+</html>
